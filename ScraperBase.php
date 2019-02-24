@@ -3,6 +3,7 @@ require_once 'simple_html_dom.php';
 
 abstract class ScraperBase
 {
+    public $currentDIR      = '';
     public $currentISBN     = [];
     public $toBeVisited     = [];
     public $productLinks    = [];
@@ -24,7 +25,23 @@ abstract class ScraperBase
 
     abstract public function scrapeProduct($page, $i = 0);
 
-    abstract public function fetchProductUrls($page, $i = 0);
+    abstract protected function loadAllLinks();
+
+    public function fetchProductUrls($page, $i = 0)
+    {
+        try {
+            $this->loadPage($page, $i);
+
+            if (!method_exists($this->html, 'find')) {
+                return 0;
+            }
+
+            $this->loadAllLinks();
+        } catch (Exception $ex) {
+            echo print_r($ex, 1);
+            return 0;
+        }
+    }
 
     /**
      * This will help avoiding navigating to external links
@@ -180,7 +197,7 @@ abstract class ScraperBase
         }
         foreach ($this->productLinks as $i => $url) {
             if ($this->scrapeProduct($url, $i + 1)) {
-                $this->exportProduct("./oup.com.pk/{$exportFile}");
+                $this->exportProduct("./{$this->currentDIR}/{$exportFile}");
                 $this->exportISBN("{$exportFile}_ISBN");
             }
         }
@@ -299,6 +316,44 @@ abstract class ScraperBase
             echo "\t\tFailed to open Export File: {$exportFile}", $this->newLine;
             echo print_r($ex, 1);
             return;
+        }
+    }
+
+    /**
+     * For use of child classes only
+     * @param type $find string to search through dom
+     */
+    protected function loadProductLinks($find)
+    {
+        $links = $this->html->find($find);
+        foreach ($links as $a) {
+            // first verify its a valid site url
+            if (strpos($a->href, $this->baseUrl) !== false &&
+                !in_array($a->href, $this->productLinks) &&
+                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href]
+                == false)
+            ) {
+                $this->productLinks[] = $a->href;
+            }
+        }
+    }
+
+    /**
+     * For use of child classes only
+     * @param type $find string to search through dom
+     */
+    protected function loadToBeVisited($find)
+    {
+        $links = $this->html->find($find);
+        foreach ($links as $a) {
+            // first verify its a valid site url
+            if (strpos($a->href, $this->baseUrl) !== false &&
+                !in_array($a->href, $this->productLinks) &&
+                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href]
+                == false)
+            ) {
+                $this->toBeVisited[$a->href] = true;
+            }
         }
     }
 }

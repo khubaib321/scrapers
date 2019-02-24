@@ -4,6 +4,7 @@ ini_set('display_errors', true);
 
 require_once 'paramount.com.pk/ParamountScraper.php';
 require_once 'oup.com.pk/OUPScraper.php';
+require_once 'linkshop.pk/LinkShopScraper.php';
 
 //$url_export_map = [
 //    'index.asp' => 'everything',
@@ -19,23 +20,31 @@ require_once 'oup.com.pk/OUPScraper.php';
 //$paramountScraper->scrapeRemainder("./paramount.com.pk/{$exportFile}");
 //$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
 
+//$url_export_map = [
+//    '' => 'everything',
+////    'school-textbooks.html' => 'test',
+//];
+
+//foreach ($url_export_map as $url => $exportFile) {
+//    $oupScraper = new OUPScraper('https://oup.com.pk');
+//    $oupScraper->loadISBNS('everything_ISBN');
+//    $oupScraper->fetchProductUrls($url);
+//    $oupScraper->startScraping($exportFile);
+////    $oupScraper->testFetch($url);
+//}
+//$oupScraper->scrapeRemainder($exportFile, array_sum(array_values($oupScraper->toBeVisited)));
+//$oupScraper->exportFailedLinks("./oup.com.pk/failed/failed_links");
+
 $url_export_map = [
-    '' => 'everything',
-//    'school-textbooks.html' => 'test',
+    'all-books' => 'everything',
 ];
 
 foreach ($url_export_map as $url => $exportFile) {
-    $oupScraper = new OUPScraper('https://oup.com.pk');
-    $oupScraper->loadISBNS('everything_ISBN');
-    $oupScraper->fetchProductUrls($url);
-    $oupScraper->startScraping($exportFile);
-//    $oupScraper->testFetch($url);
+    $LSScraper = new LinkShopScraper('https://www.linkshop.pk');
+    $LSScraper->loadISBNS('everything_ISBN');
+    $LSScraper->fetchProductUrls($url);
+//    $LSScraper->startScraping($exportFile);
 }
-$oupScraper->scrapeRemainder($exportFile, array_sum(array_values($oupScraper->toBeVisited)));
-$oupScraper->exportFailedLinks("./oup.com.pk/failed/failed_links");
 
-$pagesToVisit = count($oupScraper->toBeVisited);
-$productsToScrape = count($oupScraper->productLinks);
-
-echo "PAGES VISITED: {$pagesToVisit}", $oupScraper->newLine;
-echo "PRODUCTS SCRAPED: {$productsToScrape}", $oupScraper->newLine;
+$LSScraper->scrapeRemainder($exportFile, array_sum(array_values($LSScraper->toBeVisited)));
+$LSScraper->exportFailedLinks("./{$LSScraper->currentDIR}/failed/failed_links");

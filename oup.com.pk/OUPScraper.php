@@ -15,10 +15,16 @@ class OUPScraper extends ScraperBase
         'Pages',
     ];
 
+    public function __construct($baseUrl = '')
+    {
+        parent::__construct($baseUrl);
+        $this->currentDIR = 'oup.com.pk';
+    }
+
     public function testFetch($page, $i = 0)
     {
         $this->loadPage($page, $i);
-        
+
         if (!method_exists($this->html, 'find')) {
             return 0;
         }
@@ -150,40 +156,16 @@ class OUPScraper extends ScraperBase
         }
     }
 
+    /**
+     * Load all links to visit and scrape data from
+     */
     protected function loadAllLinks()
     {
         // first try to get all products
-        $links = $this->html->find('li.item.last a');
-        foreach ($links as $a) {
-            // first verify its a valid oup url
-            if (strpos($a->href, $this->baseUrl) !== false &&
-                !in_array($a->href, $this->productLinks) &&
-                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
-            ) {
-                $this->productLinks[] = $a->href;
-            }
-        }
+        $this->loadProductLinks('li.item.last a');
         // then try to get all pagination links
-        $links = $this->html->find('div.pages a');
-        foreach ($links as $a) {
-            // first verify its a valid oup url
-            if (strpos($a->href, $this->baseUrl) !== false &&
-                !in_array($a->href, $this->productLinks) &&
-                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
-            ) {
-                $this->toBeVisited[$a->href] = true;
-            }
-        }
+        $this->loadToBeVisited('div.pages a');
         // then get every remaining link
-        $links = $this->html->find('a');
-        foreach ($links as $a) {
-            // first verify its a valid oup url
-            if (strpos($a->href, $this->baseUrl) !== false &&
-                !in_array($a->href, $this->productLinks) &&
-                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
-            ) {
-                $this->toBeVisited[$a->href] = true;
-            }
-        }
+        $this->loadToBeVisited('a');
     }
 }

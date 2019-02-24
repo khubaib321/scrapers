@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../ScraperBase.php';
+require_once __DIR__.'/../ScraperBase.php';
 
 class ParamountScraper extends ScraperBase
 {
@@ -36,7 +36,8 @@ class ParamountScraper extends ScraperBase
                     if (strpos($a->href, 'title=') !== false) {
 //                        echo $a->href, $this->newLine;
                         $this->productLinks[] = $a->href;
-                    } elseif (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false) {
+                    } elseif (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href]
+                        == false) {
 //                        echo $a->href, $this->newLine;
                         $this->toBeVisited[$a->href] = true;
                     }
@@ -121,7 +122,7 @@ class ParamountScraper extends ScraperBase
             if (!empty($productInfo['ISBN:'])) {
                 $this->currentISBN = $productInfo['ISBN:'];
                 // if valid isbn
-                $images = $this->html->find("img[src^=images/books/{$productInfo['ISBN:']}]");
+                $images            = $this->html->find("img[src^=images/books/{$productInfo['ISBN:']}]");
                 foreach ($images as $img) {
                     if (!empty($img->src)) {
                         $this->downloadImage($img->src);
@@ -145,5 +146,13 @@ class ParamountScraper extends ScraperBase
             echo print_r($ex, 1);
             return false;
         }
+    }
+
+    /**
+     * Load all links to visit and scrape data from
+     */
+    protected function loadAllLinks()
+    {
+        // not needed for this class
     }
 }
