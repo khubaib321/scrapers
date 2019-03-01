@@ -3,6 +3,7 @@ require_once __DIR__ . '/../ScraperBase.php';
 
 class ParamountScraper extends ScraperBase
 {
+
     public $infoToGrab = [
         'List Price:',
         'Author:',
@@ -60,7 +61,7 @@ class ParamountScraper extends ScraperBase
         try {
             $this->loadPage($page, $i);
             $grabbingNow = '';
-            $grabAfter   = -1;
+            $grabAfter = -1;
             $productInfo = [
                 'Title:' => '',
                 'Description:' => '',
@@ -101,10 +102,10 @@ class ParamountScraper extends ScraperBase
                     $tdContent = str_replace('&nbsp;', '', $td->plaintext);
                     if (in_array($tdContent, $this->infoToGrab)) {
                         $grabbingNow = $tdContent;
-                        $grabAfter   = ($tdContent === 'List Price:') ? 0 : 1;
+                        $grabAfter = ($tdContent === 'List Price:') ? 0 : 1;
 //                        echo $tdContent, ' ';
                     } elseif ($grabAfter === 0 && empty($productInfo[$grabbingNow])) {
-                        $grabAfter                 = -1;
+                        $grabAfter = -1;
 //                        echo $tdContent, $this->newLine;
                         $productInfo[$grabbingNow] = $tdContent;
                     } else {
@@ -135,7 +136,7 @@ class ParamountScraper extends ScraperBase
 
             $productInfo['Url:'] = "{$this->baseUrl}/{$page}";    // save url to correct anamolies
             if ($validExport) {
-                $this->bookISBNS[]       = trim($this->currentISBN);
+                $this->bookISBNS[] = trim($this->currentISBN);
                 $this->scrapedProducts[] = array_values($productInfo);
             } else {
                 echo "\t\tProduct Already Scraped => ISBN: {$this->currentISBN}", $this->newLine;
@@ -145,5 +146,13 @@ class ParamountScraper extends ScraperBase
             echo print_r($ex, 1);
             return false;
         }
+    }
+
+    /**
+     * Load all links to visit and scrape data from
+     */
+    protected function loadAllLinks()
+    {
+        // not needed for this class
     }
 }

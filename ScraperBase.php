@@ -3,19 +3,23 @@ require_once 'simple_html_dom.php';
 
 abstract class ScraperBase
 {
-    public $currentISBN     = [];
-    public $toBeVisited     = [];
-    public $productLinks    = [];
-    public $infoToGrab      = [];
-    public $visited         = [];
-    public $failedLinks     = [];
+
+    public $currentProduct = '';
+    public $productID = '';
+    public $currentDIR = '';
+    public $currentISBN = [];
+    public $toBeVisited = [];
+    public $productLinks = [];
+    public $infoToGrab = [];
+    public $visited = [];
+    public $failedLinks = [];
     public $scrapedProducts = [];
-    public $bookISBNS       = [];
-    public $baseUrl         = '';
-    public $newLine         = "\n";
-    public $fp              = null;
-    public $fpISBN          = null;
-    public $html            = null;
+    public $bookISBNS = [];
+    public $baseUrl = '';
+    public $newLine = "\n";
+    public $fp = null;
+    public $fpISBN = null;
+    public $html = null;
 
     public function __construct($baseUrl = '')
     {
@@ -24,7 +28,23 @@ abstract class ScraperBase
 
     abstract public function scrapeProduct($page, $i = 0);
 
-    abstract public function fetchProductUrls($page, $i = 0);
+    abstract protected function loadAllLinks();
+
+    public function fetchProductUrls($page, $i = 0)
+    {
+        try {
+            $this->loadPage($page, $i);
+
+            if (!method_exists($this->html, 'find')) {
+                return 0;
+            }
+
+            $this->loadAllLinks();
+        } catch (Exception $ex) {
+            echo print_r($ex, 1);
+            return 0;
+        }
+    }
 
     /**
      * This will help avoiding navigating to external links
@@ -41,7 +61,7 @@ abstract class ScraperBase
      */
     public function loadISBNS($filename)
     {
-        $file = fopen($filename.'.csv', 'r');
+        $file = fopen($filename . '.csv', 'r');
         if ($file) {
             while (($line = fgetcsv($file)) !== FALSE) {
                 if (!empty($line[0])) {
@@ -105,8 +125,8 @@ abstract class ScraperBase
             $this->html = null;
             return false;
         }
-        $isbn     = '';
-        $query    = '';
+        $isbn = '';
+        $query = '';
         $urlParts = parse_url("{$this->baseUrl}/{$page}");
         if (isset($urlParts['query'])) {
             parse_str($urlParts['query'], $query);
@@ -149,7 +169,7 @@ abstract class ScraperBase
             } elseif (!in_array("{$this->baseUrl}/{$page}", $this->failedLinks)) {
                 // What if there's no Internet? Hmmm
                 echo "\t\tAdded to failed links => {$this->baseUrl}/{$page}", $this->newLine;
-                $this->failedLinks[]                           = "{$this->baseUrl}/{$page}";
+                $this->failedLinks[] = "{$this->baseUrl}/{$page}";
                 $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
                 return false;
             } else {
@@ -158,12 +178,12 @@ abstract class ScraperBase
                  * no need to visit again i think
                  */
                 $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
-                $this->visited[]                               = strtolower("{$this->baseUrl}/{$page}");
+                $this->visited[] = strtolower("{$this->baseUrl}/{$page}");
                 return false;
             }
         }
         $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
-        $this->visited[]                               = strtolower("{$this->baseUrl}/{$page}");
+        $this->visited[] = strtolower("{$this->baseUrl}/{$page}");
         return true;
     }
 
@@ -180,7 +200,7 @@ abstract class ScraperBase
         }
         foreach ($this->productLinks as $i => $url) {
             if ($this->scrapeProduct($url, $i + 1)) {
-                $this->exportProduct("./oup.com.pk/{$exportFile}");
+                $this->exportProduct("./{$this->currentDIR}/{$exportFile}");
                 $this->exportISBN("{$exportFile}_ISBN");
             }
         }
@@ -200,7 +220,7 @@ abstract class ScraperBase
             return;
         }
         try {
-            $csv        = $this->getFilePointer($exportFile);
+            $csv = $this->getFilePointer($exportFile);
             $last_index = count($this->scrapedProducts) - 1;
             fputcsv($csv, $this->scrapedProducts[$last_index]);
         } catch (Exception $ex) {
@@ -245,8 +265,8 @@ abstract class ScraperBase
         }
         echo "\t\tDownloading Image: {$src}", $this->newLine;
         try {
-            $ch  = curl_init("{$this->baseUrl}/{$src}");
-            $img = fopen("./oup.com.pk/images/{$this->currentISBN}.jpg", 'wb');
+            $ch = curl_init("{$this->baseUrl}/{$src}");
+            $img = fopen("./{$this->currentDIR}/images/{$this->productID}.jpg", 'wb');
             curl_setopt($ch, CURLOPT_FILE, $img);
             curl_setopt($ch, CURLOPT_HEADER, 0);
             curl_exec($ch);
@@ -275,8 +295,7 @@ abstract class ScraperBase
                 $this->startScraping($exportFile);
             }
         }
-        $this->scrapeRemainder($exportFile,
-            array_sum(array_values($this->toBeVisited)));
+        $this->scrapeRemainder($exportFile, array_sum(array_values($this->toBeVisited)));
     }
 
     /**
@@ -292,13 +311,49 @@ abstract class ScraperBase
             return;
         }
         try {
-            $csv        = $this->getFilePointerISBN($exportFile);
+            $csv = $this->getFilePointerISBN($exportFile);
             $last_index = count($this->bookISBNS) - 1;
             fputcsv($csv, array($this->bookISBNS[$last_index]));
         } catch (Exception $ex) {
             echo "\t\tFailed to open Export File: {$exportFile}", $this->newLine;
             echo print_r($ex, 1);
             return;
+        }
+    }
+
+    /**
+     * For use of child classes only
+     * @param type $find string to search through dom
+     */
+    protected function loadProductLinks($find)
+    {
+        $links = $this->html->find($find);
+        foreach ($links as $a) {
+            // first verify its a valid site url
+            if (strpos($a->href, $this->baseUrl) !== false &&
+                !in_array($a->href, $this->productLinks) &&
+                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+            ) {
+                $this->productLinks[] = $a->href;
+            }
+        }
+    }
+
+    /**
+     * For use of child classes only
+     * @param type $find string to search through dom
+     */
+    protected function loadToBeVisited($find)
+    {
+        $links = $this->html->find($find);
+        foreach ($links as $a) {
+            // first verify its a valid site url
+            if (strpos($a->href, $this->baseUrl) !== false &&
+                !in_array($a->href, $this->productLinks) &&
+                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+            ) {
+                $this->toBeVisited[$a->href] = true;
+            }
         }
     }
 }
