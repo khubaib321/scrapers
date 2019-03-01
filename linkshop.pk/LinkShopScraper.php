@@ -1,8 +1,9 @@
 <?php
-require_once __DIR__.'/../ScraperBase.php';
+require_once __DIR__ . '/../ScraperBase.php';
 
 class LinkShopScraper extends ScraperBase
 {
+
     public $infoToGrab = [
         'Price',
         'Writer:',
@@ -27,13 +28,12 @@ class LinkShopScraper extends ScraperBase
         if (!method_exists($this->html, 'find')) {
             return 0;
         }
-
-        $links = $this->html->find('div.pages a');
     }
 
     public function scrapeProduct($page, $i = 0)
     {
         try {
+            $page = str_replace(' ', '%20', trim($page));
             $this->loadPage($page, $i);
 
             $this->currentISBN = '';
@@ -57,8 +57,8 @@ class LinkShopScraper extends ScraperBase
                 'Url' => '',
             ];
 
-            $productInfo['Title'] = $this->html->find('h1.heading-title')[0]->plaintext;
-            $details              = $this->html->find('div#product div.product-sold-count-text');
+            $productInfo['Title'] = trim($this->html->find('h1.heading-title')[0]->plaintext);
+            $details = $this->html->find('div#product div.product-sold-count-text');
             foreach ($details as $dd) {
                 $info = trim($dd->find('span')[0]->plaintext);
                 if (in_array($info, $this->infoToGrab)) {
@@ -75,23 +75,36 @@ class LinkShopScraper extends ScraperBase
             }
             // NO ISBN FOR SOME NOVELS
             $this->currentISBN = $productInfo['ISBN:'];
-            $productInfo['Url'] = $page;
-        } catch (Exception $ex) {
-            echo print_r($ex, 1);
-            return 0;
-        }
-    }
+            $this->currentProduct = $productInfo['Title'];
 
-    public function fetchProductUrls($page, $i = 0)
-    {
-        try {
-            $this->loadPage($page, $i);
-
-            if (!method_exists($this->html, 'find')) {
-                return 0;
+            $price = $this->html->find('li.product-price');
+            if (empty($price)) {
+                $price = $this->html->find('li.price-old');
+            }
+            if (!empty($price)) {
+                $productInfo['Price'] = $price[0]->plaintext;
             }
 
-            $this->loadAllLinks();
+            $productInfo['Url'] = $page;
+            $productInfo['Category:'] = strtoupper('NOVELS / URDU NOVELS / ' . $productInfo['Category:']);
+            $this->productID = empty($productInfo['ISBN:']) ? $productInfo['Title'] : $productInfo['ISBN:'];
+
+            $validExport = false;
+            if (!empty($this->productID) &&
+                !in_array($this->productID, $this->bookISBNS)
+            ) {
+                $validExport = true;
+                $img = $this->html->find('#image');
+                if (!empty($img)) {
+                    $this->downloadImage($img[0]->src);
+                }
+                $productInfo['Image'] = "images/{$this->productID}.jpg";
+                $this->bookISBNS[] = $this->productID;
+                $this->scrapedProducts[] = $productInfo;
+            } else {
+                echo "\t\tProduct Already Scraped => ID: {$this->productID}", $this->newLine;
+            }
+            return $validExport;
         } catch (Exception $ex) {
             echo print_r($ex, 1);
             return 0;

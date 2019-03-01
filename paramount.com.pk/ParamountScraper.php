@@ -1,8 +1,9 @@
 <?php
-require_once __DIR__.'/../ScraperBase.php';
+require_once __DIR__ . '/../ScraperBase.php';
 
 class ParamountScraper extends ScraperBase
 {
+
     public $infoToGrab = [
         'List Price:',
         'Author:',
@@ -36,8 +37,7 @@ class ParamountScraper extends ScraperBase
                     if (strpos($a->href, 'title=') !== false) {
 //                        echo $a->href, $this->newLine;
                         $this->productLinks[] = $a->href;
-                    } elseif (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href]
-                        == false) {
+                    } elseif (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false) {
 //                        echo $a->href, $this->newLine;
                         $this->toBeVisited[$a->href] = true;
                     }
@@ -61,7 +61,7 @@ class ParamountScraper extends ScraperBase
         try {
             $this->loadPage($page, $i);
             $grabbingNow = '';
-            $grabAfter   = -1;
+            $grabAfter = -1;
             $productInfo = [
                 'Title:' => '',
                 'Description:' => '',
@@ -102,10 +102,10 @@ class ParamountScraper extends ScraperBase
                     $tdContent = str_replace('&nbsp;', '', $td->plaintext);
                     if (in_array($tdContent, $this->infoToGrab)) {
                         $grabbingNow = $tdContent;
-                        $grabAfter   = ($tdContent === 'List Price:') ? 0 : 1;
+                        $grabAfter = ($tdContent === 'List Price:') ? 0 : 1;
 //                        echo $tdContent, ' ';
                     } elseif ($grabAfter === 0 && empty($productInfo[$grabbingNow])) {
-                        $grabAfter                 = -1;
+                        $grabAfter = -1;
 //                        echo $tdContent, $this->newLine;
                         $productInfo[$grabbingNow] = $tdContent;
                     } else {
@@ -122,7 +122,7 @@ class ParamountScraper extends ScraperBase
             if (!empty($productInfo['ISBN:'])) {
                 $this->currentISBN = $productInfo['ISBN:'];
                 // if valid isbn
-                $images            = $this->html->find("img[src^=images/books/{$productInfo['ISBN:']}]");
+                $images = $this->html->find("img[src^=images/books/{$productInfo['ISBN:']}]");
                 foreach ($images as $img) {
                     if (!empty($img->src)) {
                         $this->downloadImage($img->src);
@@ -136,7 +136,7 @@ class ParamountScraper extends ScraperBase
 
             $productInfo['Url:'] = "{$this->baseUrl}/{$page}";    // save url to correct anamolies
             if ($validExport) {
-                $this->bookISBNS[]       = trim($this->currentISBN);
+                $this->bookISBNS[] = trim($this->currentISBN);
                 $this->scrapedProducts[] = array_values($productInfo);
             } else {
                 echo "\t\tProduct Already Scraped => ISBN: {$this->currentISBN}", $this->newLine;
