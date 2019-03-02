@@ -39,7 +39,7 @@ class LinkShopScraper extends ScraperBase
             $this->currentISBN = '';
 
             if (!method_exists($this->html, 'find')) {
-                return 0;
+                return false;
             }
 
             $productInfo = [
