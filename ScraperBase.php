@@ -113,15 +113,10 @@ abstract class ScraperBase
      */
     public function loadPage($page, $i = 0, $retry = 0)
     {
-        if ($page !== $this->baseUrl) {
-            // if not home page then remove base url because appended later
-            $page = str_replace($this->baseUrl, '', $page);
-        }
-        if ($page[0] === '/') {
-            $page = substr($page, 1);
-        }
+        $page = $this->getRelativeUrl($page);
         if (empty($this->baseUrl) ||
-            in_array(strtolower("{$this->baseUrl}/{$page}"), $this->visited)
+            (isset($this->toBeVisited["{$this->baseUrl}/{$page}"]) &&
+            $this->toBeVisited["{$this->baseUrl}/{$page}"] == false)
         ) {
 //            echo "{$i} => Already Visited {$this->baseUrl}/{$page} OR Invalid Url", $this->newLine;
             $this->html = null;
@@ -201,12 +196,15 @@ abstract class ScraperBase
             echo 'No Urls To Scrape.', $this->newLine;
             return;
         }
+        $exported = 0;
         foreach ($this->productLinks as $i => $url) {
             if ($this->scrapeProduct($url, $i + 1)) {
                 $this->exportProduct("./{$this->currentDIR}/{$exportFile}");
                 $this->exportISBN("{$exportFile}_ISBN");
+                $exported++;
             }
         }
+        echo "Exported {$exported} Products In Last Cycle", $this->newLine;
     }
 
     /**
@@ -291,12 +289,15 @@ abstract class ScraperBase
             return;
         }
         echo "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
+        $visited = 0;
         foreach ($this->toBeVisited as $href => $yetToVisit) {
             if ($yetToVisit) {
+                $visited++;
                 $this->fetchProductUrls($href);
                 $this->startScraping($exportFile);
             }
         }
+        echo "Visited {$visited} Links Last Cycle", $this->newLine;
         $this->scrapeRemainder($exportFile, array_sum(array_values($this->toBeVisited)));
     }
 
@@ -357,5 +358,22 @@ abstract class ScraperBase
                 $this->toBeVisited[$a->href] = true;
             }
         }
+    }
+
+    /**
+     * Get relative url after the base url
+     * @param string $page
+     * @return string
+     */
+    public function getRelativeUrl($page)
+    {
+        if ($page !== $this->baseUrl) {
+            // if not home page then remove base url because appended later
+            $page = str_replace($this->baseUrl, '', $page);
+        }
+        if ($page[0] === '/') {
+            $page = substr($page, 1);
+        }
+        return $page;
     }
 }
