@@ -6,19 +6,20 @@ require_once 'paramount.com.pk/ParamountScraper.php';
 require_once 'oup.com.pk/OUPScraper.php';
 require_once 'linkshop.pk/LinkShopScraper.php';
 
-//$url_export_map = [
-//    'index.asp' => 'everything',
-//];
-//
-//foreach ($url_export_map as $url => $exportFile) {
-//    $paramountScraper = new ParamountScraper('http://paramountbooks.com.pk');
-//    $paramountScraper->loadISBNS("./paramount.com.pk/{$exportFile}_ISBN");
-//    $productsCount    = $paramountScraper->fetchProductUrls($url);
-//    echo 'PRODUCTS FOUND: ', $productsCount, "\n";
-//    $paramountScraper->startScraping("./paramount.com.pk/{$exportFile}");
-//}
-//$paramountScraper->scrapeRemainder("./paramount.com.pk/{$exportFile}");
-//$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
+$url_export_map = [
+//    'LoginIndex.asp?cat=06&opt=4&SubCat=06&Title=MEDICAL%20BOOKS&mx2x=8' => 'medical',
+//    'LoginIndex.asp?cat=01&opt=4&SubCat=01&Title=BUSINESS&mx2x=8' => 'business',
+    'LoginIndex.asp?opt=05' => 'medical',
+];
+
+foreach ($url_export_map as $url => $exportFile) {
+    $paramountScraper = new ParamountScraper('http://paramountbooks.com.pk');
+    $paramountScraper->loadISBNS("{$exportFile}_ISBN");
+    $productsCount    = $paramountScraper->fetchProductUrls($url);
+    $paramountScraper->startScraping($exportFile);
+}
+$paramountScraper->scrapeRemainder($exportFile, array_sum(array_values($paramountScraper->toBeVisited)));
+$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
 
 //$url_export_map = [
 //    '' => 'everything',
@@ -35,16 +36,16 @@ require_once 'linkshop.pk/LinkShopScraper.php';
 //$oupScraper->scrapeRemainder($exportFile, array_sum(array_values($oupScraper->toBeVisited)));
 //$oupScraper->exportFailedLinks("./oup.com.pk/failed/failed_links");
 
-$url_export_map = [
-    'all-books' => 'everything',
-];
-
-foreach ($url_export_map as $url => $exportFile) {
-    $LSScraper = new LinkShopScraper('https://www.linkshop.pk');
-    $LSScraper->loadISBNS('everything_ISBN');
-    $LSScraper->fetchProductUrls($url);
-//    $LSScraper->startScraping($exportFile);
-}
-
-$LSScraper->scrapeRemainder($exportFile, array_sum(array_values($LSScraper->toBeVisited)));
-$LSScraper->exportFailedLinks("./{$LSScraper->currentDIR}/failed/failed_links");
+//$url_export_map = [
+//    'all-books' => 'everything',
+//];
+//
+//foreach ($url_export_map as $url => $exportFile) {
+//    $LSScraper = new LinkShopScraper('https://www.linkshop.pk');
+//    $LSScraper->loadISBNS('everything_ISBN');
+//    $LSScraper->fetchProductUrls($url);
+////    $LSScraper->startScraping($exportFile);
+//}
+//
+//$LSScraper->scrapeRemainder($exportFile, array_sum(array_values($LSScraper->toBeVisited)));
+//$LSScraper->exportFailedLinks("./{$LSScraper->currentDIR}/failed/failed_links");

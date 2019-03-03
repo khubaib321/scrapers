@@ -20,6 +20,8 @@ abstract class ScraperBase
     public $fp = null;
     public $fpISBN = null;
     public $html = null;
+    public $exportFile = '';
+    public $categoryNameMap = [];
 
     public function __construct($baseUrl = '')
     {
@@ -139,7 +141,7 @@ abstract class ScraperBase
             }
         }
         if (!empty($isbn) && in_array($isbn, $this->bookISBNS)) {
-            echo "\t\tScraperBase::loadPage - Product Already Scraped => ISBN: {$isbn}", $this->newLine;
+//            echo "\t\tScraperBase::loadPage - Product Already Scraped => ISBN: {$isbn}", $this->newLine;
             $this->html = null;
             return false;
         }
@@ -194,6 +196,7 @@ abstract class ScraperBase
      */
     public function startScraping($exportFile = '')
     {
+        $this->exportFile = $exportFile;
         if (empty($this->productLinks)) {
             echo 'No Urls To Scrape.', $this->newLine;
             return;
@@ -204,7 +207,6 @@ abstract class ScraperBase
                 $this->exportISBN("{$exportFile}_ISBN");
             }
         }
-        echo $this->newLine, $this->newLine;
     }
 
     /**
@@ -288,7 +290,7 @@ abstract class ScraperBase
         if (empty($nonVisitedCount) || $nonVisitedCount == 0) {
             return;
         }
-        echo "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine, $this->newLine;
+        echo "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
         foreach ($this->toBeVisited as $href => $yetToVisit) {
             if ($yetToVisit) {
                 $this->fetchProductUrls($href);

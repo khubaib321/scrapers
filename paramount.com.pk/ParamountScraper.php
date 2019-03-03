@@ -5,7 +5,7 @@ class ParamountScraper extends ScraperBase
 {
 
     public $infoToGrab = [
-        'List Price:',
+        'Price:',
         'Author:',
         'ISBN:',
         'Year:',
@@ -15,6 +15,22 @@ class ParamountScraper extends ScraperBase
         'Language:',
         'Pages:',
     ];
+
+    public function __construct($baseUrl = '')
+    {
+        parent::__construct($baseUrl);
+        $this->currentDIR = 'paramount.com.pk';
+        $this->categoryNameMap = [
+            '01' => 'business',
+            '02' => 'children books',
+            '03' => 'computer science',
+            '04' => 'engineering',
+            '05' => 'general interest',
+            '06' => 'medical',
+            '07' => 'science',
+            '08' => 'social sciences',
+        ];
+    }
 
     /**
      * Fetches all product links from a page
@@ -31,16 +47,36 @@ class ParamountScraper extends ScraperBase
                 return 0;
             }
 
-            $links = $this->html->find('td a');
-            foreach ($links as $a) {
-                if (!in_array(strtolower($a->href), $this->visited)) {
-                    if (strpos($a->href, 'title=') !== false) {
-//                        echo $a->href, $this->newLine;
-                        $this->productLinks[] = $a->href;
-                    } elseif (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false) {
-//                        echo $a->href, $this->newLine;
-                        $this->toBeVisited[$a->href] = true;
-                    }
+            // category pages
+//            $visitLinks = $this->html->find('tr.LeftCatSub td a');
+//            foreach ($visitLinks as $a) {
+//                if (!in_array(strtolower($a->href), $this->visited)) {
+//                    if (!empty($a->title) &&
+//                        strpos($a->href, 'Cat=06') !== false &&
+//                        (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+//                    ) {
+//                        $this->toBeVisited[$a->href] = true;
+//                    }
+//                }
+//            }
+            // pagination links
+            $paginationImgs = $this->html->find('td a img');
+            foreach ($paginationImgs as $img) {
+                if (strpos($img->src, 'Images/Misc/NEXTPAGE.jpg') !== false &&
+//                    strpos($img->parent()->href, 'Cat=06') !== false &&
+                    (!isset($this->toBeVisited[$img->parent()->href]) || $this->toBeVisited[$img->parent()->href] == false)) {
+                    $this->toBeVisited[$img->parent()->href] = true;
+                }
+            }
+            // product links
+            $productTables = $this->html->find('table#f2');
+            foreach ($productTables as $tables) {
+                $productLinks = $tables->find('a');
+                if (strpos($productLinks[0]->href, 'title=') !== false &&
+                    strpos($productLinks[0]->href, 'Cat=06') !== false &&
+                    (!isset($this->toBeVisited[$productLinks[0]->href]) || $this->toBeVisited[$productLinks[0]->href] == false)
+                ) {
+                    $this->productLinks[] = $productLinks[0]->href;
                 }
             }
         } catch (Exception $ex) {
@@ -65,7 +101,7 @@ class ParamountScraper extends ScraperBase
             $productInfo = [
                 'Title:' => '',
                 'Description:' => '',
-                'List Price:' => '',
+                'Price:' => '',
                 'Author:' => '',
                 'ISBN:' => '',
                 'Year:' => '',
@@ -102,7 +138,7 @@ class ParamountScraper extends ScraperBase
                     $tdContent = str_replace('&nbsp;', '', $td->plaintext);
                     if (in_array($tdContent, $this->infoToGrab)) {
                         $grabbingNow = $tdContent;
-                        $grabAfter = ($tdContent === 'List Price:') ? 0 : 1;
+                        $grabAfter = ($tdContent === 'Price:') ? 0 : 1;
 //                        echo $tdContent, ' ';
                     } elseif ($grabAfter === 0 && empty($productInfo[$grabbingNow])) {
                         $grabAfter = -1;
@@ -114,15 +150,17 @@ class ParamountScraper extends ScraperBase
                 }
             }
 
+            $this->productID = empty($productInfo['ISBN:']) ? $productInfo['Title:'] : $productInfo['ISBN:'];
+            $this->currentISBN = $productInfo['ISBN:'];
+
             // to avoid duplicates
-            if (in_array(trim($productInfo['ISBN:']), $this->bookISBNS)) {
+            if (in_array(trim($this->productID), $this->bookISBNS)) {
                 $validExport = false;
             }
 
-            if (!empty($productInfo['ISBN:'])) {
-                $this->currentISBN = $productInfo['ISBN:'];
+            if (!empty($this->productID)) {
                 // if valid isbn
-                $images = $this->html->find("img[src^=images/books/{$productInfo['ISBN:']}]");
+                $images = $this->html->find("img[src^=images/books/{$this->productID}]");
                 foreach ($images as $img) {
                     if (!empty($img->src)) {
                         $this->downloadImage($img->src);
@@ -131,15 +169,16 @@ class ParamountScraper extends ScraperBase
                     }
                 }
             } else {
-                echo "\t\tFailed to find image for ISBN '{$productInfo['ISBN:']}'", $this->newLine;
+                echo "\t\tFailed to find image for ID '{$this->productID}'", $this->newLine;
             }
-
+            $categoryBase = strtoupper($this->exportFile);
+            $productInfo['Category:'] = "{$categoryBase} > " . $productInfo['Category:'];
             $productInfo['Url:'] = "{$this->baseUrl}/{$page}";    // save url to correct anamolies
             if ($validExport) {
-                $this->bookISBNS[] = trim($this->currentISBN);
+                $this->bookISBNS[] = trim($this->productID);
                 $this->scrapedProducts[] = array_values($productInfo);
             } else {
-                echo "\t\tProduct Already Scraped => ISBN: {$this->currentISBN}", $this->newLine;
+                echo "\t\tProduct Already Scraped => ID: {$this->productID}", $this->newLine;
             }
             return $validExport;
         } catch (Exception $ex) {
