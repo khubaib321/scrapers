@@ -193,7 +193,7 @@ abstract class ScraperBase
     {
         $this->exportFile = $exportFile;
         if (empty($this->productLinks)) {
-            echo 'No Urls To Scrape.', $this->newLine;
+            echo 'No Products To Scrape.', $this->newLine;
             return;
         }
         $exported = 0;
@@ -204,7 +204,6 @@ abstract class ScraperBase
                 $exported++;
             }
         }
-        echo "Exported {$exported} Products In Last Cycle", $this->newLine;
     }
 
     /**
@@ -283,22 +282,21 @@ abstract class ScraperBase
      * Scrape info from yet to be visited pages
      * @param $exportFile
      */
-    public function scrapeRemainder($exportFile, $nonVisitedCount)
+    public function scrapeRemainder($exportFile)
     {
+        $nonVisitedCount = array_sum(array_values($this->toBeVisited));
         if (empty($nonVisitedCount) || $nonVisitedCount == 0) {
             return;
         }
-        echo "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
-        $visited = 0;
-        foreach ($this->toBeVisited as $href => $yetToVisit) {
-            if ($yetToVisit) {
-                $visited++;
+        echo $this->newLine, "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
+        foreach ($this->toBeVisited as $href => $toBeVisited) {
+            if ($toBeVisited) {
+                $this->toBeVisited[$href] = false;
                 $this->fetchProductUrls($href);
                 $this->startScraping($exportFile);
             }
         }
-        echo "Visited {$visited} Links Last Cycle", $this->newLine;
-        $this->scrapeRemainder($exportFile, array_sum(array_values($this->toBeVisited)));
+        $this->scrapeRemainder($exportFile);
     }
 
     /**
