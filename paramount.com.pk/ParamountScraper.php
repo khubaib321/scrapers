@@ -4,6 +4,7 @@ require_once __DIR__ . '/../ScraperBase.php';
 class ParamountScraper extends ScraperBase
 {
 
+    public $listFound = false;
     public $infoToGrab = [
         'Price:',
         'Author:',
@@ -15,6 +16,7 @@ class ParamountScraper extends ScraperBase
         'Language:',
         'Pages:',
     ];
+    public $listUrls = [];
 
     public function __construct($baseUrl = '')
     {
@@ -47,36 +49,25 @@ class ParamountScraper extends ScraperBase
                 return 0;
             }
 
-            // category pages
-//            $visitLinks = $this->html->find('tr.LeftCatSub td a');
-//            foreach ($visitLinks as $a) {
-//                if (!in_array(strtolower($a->href), $this->visited)) {
-//                    if (!empty($a->title) &&
-//                        strpos($a->href, 'Cat=06') !== false &&
-//                        (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
-//                    ) {
-//                        $this->toBeVisited[$a->href] = true;
-//                    }
-//                }
-//            }
-            // pagination links
-            $paginationImgs = $this->html->find('td a img');
-            foreach ($paginationImgs as $img) {
-                if (strpos($img->src, 'Images/Misc/NEXTPAGE.jpg') !== false &&
-//                    strpos($img->parent()->href, 'Cat=06') !== false &&
-                    (!isset($this->toBeVisited[$img->parent()->href]) || $this->toBeVisited[$img->parent()->href] == false)) {
-                    $this->toBeVisited[$img->parent()->href] = true;
+            // make a list
+            $paginationImgs = $this->html->find('td a');
+            foreach ($paginationImgs as $a) {
+                if (strpos(strtolower(trim($a->plaintext)), 'make a list') !== false &&
+                    (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)) {
+                    $this->listUrls[] = $a->href;
+                    break;
                 }
             }
-            // product links
-            $productTables = $this->html->find('table#f2');
-            foreach ($productTables as $tables) {
-                $productLinks = $tables->find('a');
-                if (strpos($productLinks[0]->href, 'title=') !== false &&
-                    strpos($productLinks[0]->href, 'Cat=06') !== false &&
-                    (!isset($this->toBeVisited[$productLinks[0]->href]) || $this->toBeVisited[$productLinks[0]->href] == false)
-                ) {
-                    $this->productLinks[] = $productLinks[0]->href;
+            // category pages
+            $visitLinks = $this->html->find('tr.LeftCatSub td a');
+            foreach ($visitLinks as $a) {
+                if (!in_array(strtolower($a->href), $this->visited)) {
+                    if (!empty($a->title) &&
+                        strpos($a->href, 'Cat=04') !== false &&
+                        (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+                    ) {
+                        $this->toBeVisited[$a->href] = true;
+                    }
                 }
             }
         } catch (Exception $ex) {
@@ -193,5 +184,36 @@ class ParamountScraper extends ScraperBase
     protected function loadAllLinks()
     {
         // not needed for this class
+    }
+
+    public function grabProductsFromLists($exportFile)
+    {
+        try {
+            $totalLists = count($this->listUrls);
+            echo $this->newLine, "GRABBING PRODUCTS FROM {$totalLists} LISTS", $this->newLine;
+            foreach ($this->listUrls as $href) {
+                // get product links
+                $href = str_replace(' ', '%20', $href);
+                $this->loadPage($href);
+                if (!method_exists($this->html, 'find')) {
+                    continue;
+                }
+                $productTables = $this->html->find('table#f1');
+                foreach ($productTables as $tables) {
+                    $productLinks = $tables->find('a');
+                    foreach ($productLinks as $a) {
+                        if (strpos($a->href, 'isbn=') !== false &&
+                            (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+                        ) {
+                            $this->productLinks[] = $a->href;
+                        }
+                    }
+                }
+            }
+        } catch (Exception $ex) {
+            echo print_r($ex, 1);
+            return 0;
+        }
+        $this->startScraping($exportFile);
     }
 }
