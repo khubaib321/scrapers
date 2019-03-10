@@ -22,6 +22,8 @@ abstract class ScraperBase
     public $html = null;
     public $exportFile = '';
     public $categoryNameMap = [];
+    public $currentPage = '';
+    public $currentCategory = '';
 
     public function __construct($baseUrl = '')
     {
@@ -41,6 +43,7 @@ abstract class ScraperBase
                 return 0;
             }
 
+            $this->currentPage = $page;
             $this->loadAllLinks();
         } catch (Exception $ex) {
             echo print_r($ex, 1);
@@ -113,18 +116,25 @@ abstract class ScraperBase
      */
     public function loadPage($page, $i = 0, $retry = 0)
     {
-        $page = $this->getRelativeUrl($page);
-        if (empty($this->baseUrl) ||
-            (isset($this->toBeVisited["{$this->baseUrl}/{$page}"]) &&
-            $this->toBeVisited["{$this->baseUrl}/{$page}"] == false)
+        $page = trim($this->getRelativeUrl($page));
+        $fullUrl = trim("{$this->baseUrl}/{$page}");
+        $fullUrl = str_replace('amp;', '', trim($fullUrl));
+        $fullUrl = str_replace(' ', '%20', trim($fullUrl));
+
+        if (isset($this->toBeVisited[$fullUrl]) &&
+            $this->toBeVisited[$fullUrl] === 0
         ) {
-//            echo "{$i} => Already Visited {$this->baseUrl}/{$page} OR Invalid Url", $this->newLine;
+//            echo "{$i} => Already Visited {$fullUrl}",
+//            ' - ',
+//            $this->toBeVisited[$fullUrl],
+//            $this->newLine;
             $this->html = null;
             return false;
         }
+
         $isbn = '';
         $query = '';
-        $urlParts = parse_url("{$this->baseUrl}/{$page}");
+        $urlParts = parse_url("{$fullUrl}");
         if (isset($urlParts['query'])) {
             parse_str($urlParts['query'], $query);
             if (isset($query['ISBN'])) {
@@ -143,15 +153,15 @@ abstract class ScraperBase
         if ($i > 0) {
             $totalPages = count($this->productLinks);
             $statusText = "{$i} / {$totalPages}";
-            echo "Product {$statusText} |{$isbn}| => {$this->baseUrl}/{$page} ...";
+            echo "Product {$statusText} |{$isbn}| => {$fullUrl} ...";
         } else {
-            echo "Fetching Urls From => {$this->baseUrl}/{$page} ...";
+            echo "Fetching Urls From => {$fullUrl} ...";
         }
         try {
-            $html = file_get_html("{$this->baseUrl}/{$page}");
+            $html = file_get_html("{$fullUrl}");
             echo ' => DONE ', $this->newLine;
         } catch (Exception $ex) {
-            echo "\t\t {$this->newLine} Failed to load => {$this->baseUrl}/{$page} {$this->newLine} {$this->newLine}";
+            echo "\t\t {$this->newLine} Failed to load => {$fullUrl} {$this->newLine} {$this->newLine}";
             echo print_r($ex, 1);
             $this->html = null;
             return false;
@@ -160,27 +170,27 @@ abstract class ScraperBase
         if (!$this->html) {
             if ($retry < 3) {
                 $retry++;
-                echo "\t\tFailed to load => {$this->baseUrl}/{$page} {$this->newLine} {$this->newLine} - [{$retry}] - Retrying after 10 seconds.", $this->newLine;
+                echo "\t\tFailed to load => {$fullUrl} {$this->newLine} {$this->newLine} - [{$retry}] - Retrying after 10 seconds.", $this->newLine;
                 sleep(10);
                 $this->loadPage($page, $i, $retry);
-            } elseif (!in_array("{$this->baseUrl}/{$page}", $this->failedLinks)) {
+            } elseif (!in_array("{$fullUrl}", $this->failedLinks)) {
                 // What if there's no Internet? Hmmm
-                echo "\t\tAdded to failed links => {$this->baseUrl}/{$page}", $this->newLine;
-                $this->failedLinks[] = "{$this->baseUrl}/{$page}";
-                $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
+                echo "\t\tAdded to failed links => {$fullUrl}", $this->newLine;
+                $this->failedLinks[] = "{$fullUrl}";
+                $this->toBeVisited["{$fullUrl}"] = 0;
                 return false;
             } else {
                 /**
                  * Most probably an external link or broken link or something unavailable
                  * no need to visit again i think
                  */
-                $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
-                $this->visited[] = strtolower("{$this->baseUrl}/{$page}");
+                $this->toBeVisited["{$fullUrl}"] = 0;
+                $this->visited[] = strtolower("{$fullUrl}");
                 return false;
             }
         }
-        $this->toBeVisited["{$this->baseUrl}/{$page}"] = false;
-        $this->visited[] = strtolower("{$this->baseUrl}/{$page}");
+        $this->toBeVisited["{$fullUrl}"] = 0;
+        $this->visited[] = strtolower("{$fullUrl}");
         return true;
     }
 
@@ -262,10 +272,12 @@ abstract class ScraperBase
         if ($src[0] === '/') {
             $src = substr($src, 1);
         }
+        $src = str_replace(' ', '%20', trim($src));
         echo "\t\tDownloading Image: {$src}", $this->newLine;
         try {
-            $ch = curl_init("{$this->baseUrl}/{$src}");
-            $img = fopen("./{$this->currentDIR}/images/{$this->productID}.jpg", 'wb');
+            $ch = curl_init("{$this->baseUrl}/{$src}"); 
+            $imageName = preg_replace('/[^a-z0-9]+/', '-', strtolower($this->productID));
+            $img = fopen("./{$this->currentDIR}/images/{$imageName}.jpg", 'wb');
             curl_setopt($ch, CURLOPT_FILE, $img);
             curl_setopt($ch, CURLOPT_HEADER, 0);
             curl_exec($ch);
@@ -284,15 +296,16 @@ abstract class ScraperBase
      */
     public function scrapeRemainder($exportFile)
     {
+        $this->exportFile = $exportFile;
         $nonVisitedCount = array_sum(array_values($this->toBeVisited));
         if (empty($nonVisitedCount) || $nonVisitedCount == 0) {
             return;
         }
         echo $this->newLine, "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
         foreach ($this->toBeVisited as $href => $toBeVisited) {
-            if ($toBeVisited) {
-                $this->toBeVisited[$href] = false;
+            if ($toBeVisited === 1) {
                 $this->fetchProductUrls($href);
+                $this->toBeVisited[$href] = 0;
                 $this->startScraping($exportFile);
             }
         }
@@ -344,16 +357,17 @@ abstract class ScraperBase
      * For use of child classes only
      * @param type $find string to search through dom
      */
-    protected function loadToBeVisited($find)
+    protected function loadToBeVisited($find, $appendQuery = '')
     {
         $links = $this->html->find($find);
         foreach ($links as $a) {
             // first verify its a valid site url
-            if (strpos($a->href, $this->baseUrl) !== false &&
-                !in_array($a->href, $this->productLinks) &&
-                (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
+            $href = trim($a->href . $appendQuery);
+            if (strpos($href, $this->baseUrl) !== false &&
+                !in_array($href, $this->productLinks) &&
+                (!isset($this->toBeVisited[$href]) || $this->toBeVisited[$href] === 0)
             ) {
-                $this->toBeVisited[$a->href] = true;
+                $this->toBeVisited[$href] = 1;
             }
         }
     }
