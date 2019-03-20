@@ -6,6 +6,7 @@ require_once 'paramount.com.pk/ParamountScraper.php';
 require_once 'oup.com.pk/OUPScraper.php';
 require_once 'linkshop.pk/LinkShopScraper.php';
 require_once 'stationaryx.pk/StationaryXScraper.php';
+require_once 'ferozsons.com.pk/FerozsonsScraper.php';
 
 //$url_export_map = [
 //    'LoginIndex.asp?cat=06&opt=4&SubCat=06&Title=MEDICAL%20BOOKS&mx2x=8' => 'medical',
@@ -18,7 +19,6 @@ require_once 'stationaryx.pk/StationaryXScraper.php';
 //    'LoginIndex.asp?cat=08&opt=4&SubCat=08&Title=SOCIAL%20SCIENCES&mx2x=8' => 'social sciences',
 //    'LoginIndex.asp?opt=05' => '',
 //];
-
 //foreach ($url_export_map as $url => $exportFile) {
 //    $paramountScraper = new ParamountScraper('http://paramountbooks.com.pk');
 //    $paramountScraper->loadISBNS("{$exportFile}_ISBN");
@@ -28,12 +28,10 @@ require_once 'stationaryx.pk/StationaryXScraper.php';
 //$paramountScraper->scrapeRemainder($exportFile);
 //$paramountScraper->grabProductsFromLists($exportFile);
 //$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
-
 //$url_export_map = [
 //    '' => 'everything',
 ////    'school-textbooks.html' => 'test',
 //];
-
 //foreach ($url_export_map as $url => $exportFile) {
 //    $oupScraper = new OUPScraper('https://oup.com.pk');
 //    $oupScraper->loadISBNS('everything_ISBN');
@@ -43,7 +41,6 @@ require_once 'stationaryx.pk/StationaryXScraper.php';
 //}
 //$oupScraper->scrapeRemainder($exportFile);
 //$oupScraper->exportFailedLinks("./oup.com.pk/failed/failed_links");
-
 //$url_export_map = [
 //    'all-books' => 'everything',
 //];
@@ -57,19 +54,28 @@ require_once 'stationaryx.pk/StationaryXScraper.php';
 //
 //$LSScraper->scrapeRemainder($exportFile);
 //$LSScraper->exportFailedLinks("./{$LSScraper->currentDIR}/failed/failed_links");
-
-
-$url_export_map = [
+//$url_export_map = [
 //    'office-supplies?limit=100' => 'office supplies',
 //    'school-supplies?limit=100' => 'school supplies',
 //    'educational-toys?limit=100' => 'educational toys',
-    'art-x?limit=100' => 'art supplies',
-];
-foreach ($url_export_map as $url => $exportFile) {
-    $sxScraper = new StationaryXScraper('https://stationeryx.pk');
-    $sxScraper->loadISBNS("{$exportFile}_ISBN");
-    $sxScraper->loadSubCategories($url);
+//    'art-x?limit=100' => 'art supplies',
+//];
+//foreach ($url_export_map as $url => $exportFile) {
+//    $sxScraper = new StationaryXScraper('https://stationeryx.pk');
+//    $sxScraper->loadISBNS("{$exportFile}_ISBN");
+//    $sxScraper->loadSubCategories($url);
 //    echo print_r($sxScraper->toBeVisited, 1), $sxScraper->newLine;
-    $sxScraper->scrapeRemainder($exportFile);
-    
+//    $sxScraper->scrapeRemainder($exportFile);
+//}
+
+$url_export_map = [
+    '' => 'ferozsons',
+];
+
+foreach ($url_export_map as $url => $exportFile) {
+    $fzScraper = new FerozsonsScraper('https://ferozsons.com.pk');
+    $fzScraper->loadISBNS("{$exportFile}_ISBN");
+    $fzScraper->getCategoryPages($url);
+//    echo print_r($fzScraper->toBeVisited, 1), $fzScraper->newLine;
+    $fzScraper->scrapeRemainder($exportFile);
 }
