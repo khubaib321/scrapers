@@ -303,7 +303,7 @@ abstract class ScraperBase
         }
         echo $this->newLine, "SCRAPE PRODUCTS FROM => {$nonVisitedCount} PAGES", $this->newLine;
         foreach ($this->toBeVisited as $href => $toBeVisited) {
-            if ($toBeVisited === 1) {
+            if ($toBeVisited) {
                 $this->fetchProductUrls($href);
                 $this->toBeVisited[$href] = 0;
                 $this->startScraping($exportFile);
