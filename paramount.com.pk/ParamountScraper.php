@@ -63,7 +63,7 @@ class ParamountScraper extends ScraperBase
             foreach ($visitLinks as $a) {
                 if (!in_array(strtolower($a->href), $this->visited)) {
                     if (!empty($a->title) &&
-                        strpos($a->href, 'Cat=05') !== false &&
+                        strpos($a->href, 'Cat=06') !== false &&
                         (!isset($this->toBeVisited[$a->href]) || $this->toBeVisited[$a->href] == false)
                     ) {
                         $this->toBeVisited[$a->href] = true;
