@@ -7,9 +7,10 @@ require_once 'oup.com.pk/OUPScraper.php';
 require_once 'linkshop.pk/LinkShopScraper.php';
 require_once 'stationaryx.pk/StationaryXScraper.php';
 require_once 'ferozsons.com.pk/FerozsonsScraper.php';
+require_once 'ilmikitabkhana.com/IlmiKKScraper.php';
 
-$url_export_map = [
-    'LoginIndex.asp?cat=06&opt=4&SubCat=06&Title=MEDICAL%20BOOKS&mx2x=8' => 'medical',
+//$url_export_map = [
+//    'LoginIndex.asp?cat=06&opt=4&SubCat=06&Title=MEDICAL%20BOOKS&mx2x=8' => 'medical',
 //    'LoginIndex.asp?cat=01&opt=4&SubCat=01&Title=BUSINESS&mx2x=8' => 'business',
 //    'LoginIndex.asp?cat=02&opt=4&SubCat=02&Title=CHILDREN%20BOOKS&mx2x=8' => 'children books',
 //    'LoginIndex.asp?cat=03&opt=4&SubCat=03&Title=COMPUTER%20SCIENCE&mx2x=8' => 'computer science',
@@ -18,18 +19,17 @@ $url_export_map = [
 //    'LoginIndex.asp?cat=07&opt=4&SubCat=07&Title=SCIENCE&mx2x=8' => 'science',
 //    'LoginIndex.asp?cat=08&opt=4&SubCat=08&Title=SOCIAL%20SCIENCES&mx2x=8' => 'social sciences',
 //    'LoginIndex.asp?opt=05' => '',
-];
-foreach ($url_export_map as $url => $exportFile) {
-    $paramountScraper = new ParamountScraper('http://paramountbooks.com.pk');
-    $paramountScraper->loadISBNS("{$exportFile}_ISBN");
-    $productsCount    = $paramountScraper->fetchProductUrls($url);
-    $paramountScraper->startScraping($exportFile);
-}
-echo print_r($paramountScraper->toBeVisited, 1), $paramountScraper->newLine;
-$paramountScraper->scrapeRemainder($exportFile);
-$paramountScraper->grabProductsFromLists($exportFile);
-$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
-
+//];
+//foreach ($url_export_map as $url => $exportFile) {
+//    $paramountScraper = new ParamountScraper('http://paramountbooks.com.pk');
+//    $paramountScraper->loadISBNS("{$exportFile}_ISBN");
+//    $productsCount    = $paramountScraper->fetchProductUrls($url);
+//    $paramountScraper->startScraping($exportFile);
+//}
+//echo print_r($paramountScraper->toBeVisited, 1), $paramountScraper->newLine;
+//$paramountScraper->scrapeRemainder($exportFile);
+//$paramountScraper->grabProductsFromLists($exportFile);
+//$paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
 //$url_export_map = [
 //    '' => 'everything',
 ////    'school-textbooks.html' => 'test',
@@ -70,7 +70,6 @@ $paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
 //    echo print_r($sxScraper->toBeVisited, 1), $sxScraper->newLine;
 //    $sxScraper->scrapeRemainder($exportFile);
 //}
-
 //$url_export_map = [
 //    '' => 'ferozsons',
 //];
@@ -82,3 +81,13 @@ $paramountScraper->exportFailedLinks("./paramount.com.pk/failed/failed_links");
 ////    echo print_r($fzScraper->toBeVisited, 1), $fzScraper->newLine;
 //    $fzScraper->scrapeRemainder($exportFile);
 //}
+
+$url_export_map = [
+    'Accounting-books-by-Ilmi' => 'ilmi_stuff',
+];
+foreach ($url_export_map as $url => $exportFile) {
+    $ilmiScraper = new IlmiKKScraper('http://ilmikitabkhana.com');
+    $ilmiScraper->loadISBNS("{$exportFile}_ISBN");
+    $ilmiScraper->fetchProductUrls($url);
+    $ilmiScraper->scrapeRemainder($exportFile);
+}
