@@ -356,6 +356,7 @@ abstract class ScraperBase
     /**
      * For use of child classes only
      * @param type $find string to search through dom
+     * @return boolean
      */
     protected function loadToBeVisited($find, $appendQuery = '')
     {
@@ -370,6 +371,10 @@ abstract class ScraperBase
                 $this->toBeVisited[$href] = 1;
             }
         }
+        if (count($links) > 0) {
+            return true;
+        }
+        return false;
     }
 
     /**
