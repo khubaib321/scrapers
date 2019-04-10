@@ -87,7 +87,8 @@ class IlmiKKScraper extends ScraperBase
                 if (!empty($img)) {
                     $this->downloadImage($img[0]->href);
                 }
-                $productInfo['Image'] = "images/{$this->productID}.jpg";
+                $imageName = preg_replace('/[^a-z0-9]+/', '-', strtolower($this->productID));
+                $productInfo['Image'] = "images/{$imageName}.jpg";
                 $this->bookISBNS[] = $this->productID;
                 $this->scrapedProducts[] = $productInfo;
             } else {
